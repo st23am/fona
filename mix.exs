@@ -30,7 +30,7 @@ defmodule Fona.Mixfile do
 
   defp package() do
     [
-      files: ["lib", "priv", "mix.exs", "README*", "readme*", "LICENSE*", "license*"],
+      files: ["lib", "priv", "mix.exs", "README*", "LICENSE*"],
       maintainers: ["James Smith"],
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/st23am/fona"}
