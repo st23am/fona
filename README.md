@@ -1,6 +1,7 @@
 # Fona
 
-**TODO: Add description**
+A library for controlling the [Fona 808 Shield](https://www.adafruit.com/product/2542) by Adafruit Industries
+
 
 ## Installation
 
