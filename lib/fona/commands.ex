@@ -2,7 +2,7 @@ defmodule Fona.Commands do
   require Logger
 
   def open_serial_connection(pid, device_path) do
-    Nerves.UART.open(pid, device_path, speed: 115200, active: false)
+    Nerves.UART.open(pid, device_path, speed: 115_200, active: false)
   end
 
   def configure_serial_connection(pid) do
@@ -17,32 +17,32 @@ defmodule Fona.Commands do
   def enable_gprs(pid, apn, username, password) do
     Nerves.UART.flush(pid)
     Nerves.UART.drain(pid)
-    with {:ok, "+CGREG: 0,1"} <- command_with_result(pid, "AT+CGREG?"),
-         {:ok, "+CGATT: 1"}   <- command_with_result(pid, "AT+CGATT?") do
 
-         {:ok, "CONNECTED"}
+    with {:ok, "+CGREG: 0,1"} <- command_with_result(pid, "AT+CGREG?"),
+         {:ok, "+CGATT: 1"} <- command_with_result(pid, "AT+CGATT?") do
+      {:ok, "CONNECTED"}
     else
       _ ->
-      with {:ok, "OK"}          <- cast_command(pid, "AT"),
-           {:ok, "OK"}          <- cast_command(pid, "ATH"),
-           {:ok, "SHUT OK"}     <- command_with_alt_success(pid, "AT+CIPSHUT"),
-           {:ok, "OK"}          <- cast_command(pid, "AT+CGATT=1"),
-           {:ok, "OK"}          <- cast_command(pid, "AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\""),
-           {:ok, "OK"}          <- cast_command(pid, "AT+SAPBR=3,1,\"APN\",\"#{apn}\""),
-           {:ok, "OK"}          <- cast_command(pid, "AT+CSTT=\"#{username}\"#{password}\""),
-           {:ok, "OK"}          <- cast_command(pid, "AT+CIICR"),
-           {:ok, "+CGATT: 1"}   <- command_with_result(pid, "AT+CGATT?"),
-           {:ok, "+CGREG: 0,1"} <- command_with_result(pid, "AT+CGREG?") do
-        Logger.info("Serial Connection Started")
-        Logger.info("GPRS Connection Enabled")
-        {:ok, "CONNECTED"}
-      else
-        error ->
-          Logger.error("An Error: #{inspect error} Occurred while enabling GPRS")
-          Logger.error("Closing GPRS Connection...")
-          close_gprs_connection(pid)
-          {:error, "DISCONNECTED"}
-      end
+        with {:ok, "OK"} <- cast_command(pid, "AT"),
+             {:ok, "OK"} <- cast_command(pid, "ATH"),
+             {:ok, "SHUT OK"} <- command_with_alt_success(pid, "AT+CIPSHUT"),
+             {:ok, "OK"} <- cast_command(pid, "AT+CGATT=1"),
+             {:ok, "OK"} <- cast_command(pid, "AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\""),
+             {:ok, "OK"} <- cast_command(pid, "AT+SAPBR=3,1,\"APN\",\"#{apn}\""),
+             {:ok, "OK"} <- cast_command(pid, "AT+CSTT=\"#{username}\"#{password}\""),
+             {:ok, "OK"} <- cast_command(pid, "AT+CIICR"),
+             {:ok, "+CGATT: 1"} <- command_with_result(pid, "AT+CGATT?"),
+             {:ok, "+CGREG: 0,1"} <- command_with_result(pid, "AT+CGREG?") do
+          Logger.info("Serial Connection Started")
+          Logger.info("GPRS Connection Enabled")
+          {:ok, "CONNECTED"}
+        else
+          error ->
+            Logger.error("An Error: #{inspect(error)} Occurred while enabling GPRS")
+            Logger.error("Closing GPRS Connection...")
+            close_gprs_connection(pid)
+            {:error, "DISCONNECTED"}
+        end
     end
   end
 
@@ -65,6 +65,7 @@ defmodule Fona.Commands do
       {:ok, "+CGNSPWR: 0"} ->
         {:ok, "OK"} = cast_command(pid, "AT+CGNSPWR=1")
         {:ok, "GPS ON"}
+
       {:ok, "+CGNSPWR: 1"} ->
         {:ok, "OK"} = cast_command(pid, "AT+CGNSPWR=0")
         {:ok, "GPS OFF"}
@@ -87,21 +88,24 @@ defmodule Fona.Commands do
     read_until_expected(pid, "OK")
     write_to_fona(pid, "AT+CIPRXGET=1")
     read_until_expected(pid, "OK")
-    write_to_fona(pid,"AT+CIPSTART=\"TCP\",\"#{dest}\",\"#{port}\"")
+    write_to_fona(pid, "AT+CIPSTART=\"TCP\",\"#{dest}\",\"#{port}\"")
     read_until_expected(pid, "CONNECT OK")
     write_to_fona(pid, "AT+CIPSEND=#{byte_size(msg)}")
     read_from_fona(pid, 2000)
     write_to_fona(pid, msg)
     read_from_fona(pid, 2000)
     write_to_fona(pid, "\x1a")
-    case read_until_expected(pid,  "+CIPRXGET: 1") do
+
+    case read_until_expected(pid, "+CIPRXGET: 1") do
       {:ok, "+CIPRXGET: 1"} ->
-        write_to_fona(pid,"AT+CIPCLOSE")
+        write_to_fona(pid, "AT+CIPCLOSE")
         read_until_expected(pid, "CLOSE OK")
+
       {:ok, "ERROR"} ->
         read_from_fona(pid, 3000)
         read_from_fona(pid, 3000)
         {:ok, "ERROR"}
+
       _ ->
         {:ok, "ERROR"}
     end
@@ -111,7 +115,6 @@ defmodule Fona.Commands do
     {:ok, "OK"} = cast_command(pid, "AT+SAPBR=1,1")
   end
 
-
   def get_imei(pid) do
     command_with_result(pid, "AT+GSN")
   end
@@ -120,8 +123,11 @@ defmodule Fona.Commands do
   defp cast_command(pid, command) do
     :ok = write_to_fona(pid, command)
     result = read_until_expected(pid, "OK")
+
     case result do
-      {:ok, "OK"} -> {:ok, "OK"}
+      {:ok, "OK"} ->
+        {:ok, "OK"}
+
       {:ok, "ERROR"} ->
         Logger.info("Command #{command} Error Retrying Again")
         retry_cast_command(pid, command, 1)
@@ -144,8 +150,11 @@ defmodule Fona.Commands do
       Logger.info("Writing #{command} to Fona")
       :ok = write_to_fona(pid, command)
       {:ok, ""} = read_from_fona(pid)
+
       case read_from_fona(pid) do
-        {:ok, "OK"} -> {:ok, "OK"}
+        {:ok, "OK"} ->
+          {:ok, "OK"}
+
         {:ok, "ERROR"} ->
           retry_cast_command(pid, command, num_tries + 1)
       end
@@ -162,14 +171,17 @@ defmodule Fona.Commands do
 
   defp read_from_fona(pid, timeout \\ 6000) do
     result = Nerves.UART.read(pid, timeout)
-    Logger.info("Got Back #{inspect result} from Fona")
+    Logger.info("Got Back #{inspect(result)} from Fona")
     result
   end
 
   defp read_until_result(pid) do
     result = read_from_fona(pid, 2000)
+
     case result do
-      {:ok, ""} -> read_until_result(pid)
+      {:ok, ""} ->
+        read_until_result(pid)
+
       {:ok, result} ->
         read_until_expected(pid, "OK")
         {:ok, result}
@@ -178,17 +190,36 @@ defmodule Fona.Commands do
 
   defp read_until_expected(pid, expected) do
     result = read_from_fona(pid, 2000)
-    case result  do
-      {:ok, ^expected} -> {:ok, expected}
-      {:ok, "ERROR"} -> {:ok, "ERROR"}
-      {:ok, "+CME ERROR: operation not allowed"} -> {:ok, "ERROR"}
-      {:ok, "SIM808 R14.18"} -> {:ok, "ERROR"}
-      {:ok, "STATE: PDP DEACT"} -> {:ok, "ERROR"}
-      {:ok, "CONNECT FAIL"} -> {:ok, "ERORR"}
-      {:ok, "CLOSED"} -> {:ok, "ERROR"}
-      {:error, :ebadf} -> {:ok, "ERROR"}
-      {:ok, "STATE: IP STATUS"} -> {:ok, "ERROR"}
-      _         ->
+
+    case result do
+      {:ok, ^expected} ->
+        {:ok, expected}
+
+      {:ok, "ERROR"} ->
+        {:ok, "ERROR"}
+
+      {:ok, "+CME ERROR: operation not allowed"} ->
+        {:ok, "ERROR"}
+
+      {:ok, "SIM808 R14.18"} ->
+        {:ok, "ERROR"}
+
+      {:ok, "STATE: PDP DEACT"} ->
+        {:ok, "ERROR"}
+
+      {:ok, "CONNECT FAIL"} ->
+        {:ok, "ERORR"}
+
+      {:ok, "CLOSED"} ->
+        {:ok, "ERROR"}
+
+      {:error, :ebadf} ->
+        {:ok, "ERROR"}
+
+      {:ok, "STATE: IP STATUS"} ->
+        {:ok, "ERROR"}
+
+      _ ->
         read_until_expected(pid, expected)
     end
   end

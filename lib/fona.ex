@@ -31,7 +31,8 @@ defmodule Fona do
     case GenServer.call(__MODULE__, :gps_location) do
       {:ok, "+CGNSINF: 1,1" <> <<_rest::binary>>} ->
         true
-      _  ->
+
+      _ ->
         false
     end
   end
@@ -70,12 +71,14 @@ defmodule Fona do
   end
 
   def handle_call({:enable_gprs, apn, username, password}, _from, %{serial_pid: pid} = state) do
-    connection_state = with {:ok, "CONNECTED"} <- Commands.enable_gprs(pid, apn, username, password) do
-                         Map.put(state, :gprs_status, "CONNECTED")
-                       else
-                         {:error, "DISCONNECTED"} ->
-                           Map.put(state, :gprs_status, "DISCONNECTED")
-                       end
+    connection_state =
+      with {:ok, "CONNECTED"} <- Commands.enable_gprs(pid, apn, username, password) do
+        Map.put(state, :gprs_status, "CONNECTED")
+      else
+        {:error, "DISCONNECTED"} ->
+          Map.put(state, :gprs_status, "DISCONNECTED")
+      end
+
     {:reply, connection_state, connection_state}
   end
 
@@ -86,10 +89,12 @@ defmodule Fona do
   end
 
   def handle_call(:toggle_gps, _from, %{serial_pid: pid} = state) do
-    status = case Commands.toggle_gps(pid) do
-      {:ok, "GPS ON"} -> Map.put(state, :gps_power, "GPS ON")
-      {:ok, "GPS OFF"} -> Map.put(state, :gps_power, "GPS OFF")
-    end
+    status =
+      case Commands.toggle_gps(pid) do
+        {:ok, "GPS ON"} -> Map.put(state, :gps_power, "GPS ON")
+        {:ok, "GPS OFF"} -> Map.put(state, :gps_power, "GPS OFF")
+      end
+
     {:reply, status, status}
   end
 
@@ -104,10 +109,12 @@ defmodule Fona do
   end
 
   def handle_call({:send_tcp_msg, dest, port, msg}, _from, %{serial_pid: pid} = state) do
-    result = case Commands.send_tcp_msg(pid, dest, port, msg) do
-      {:ok, "CLOSE OK"} -> {:ok, "SENT"}
-      {:ok, "ERROR"} -> {:error, "ERROR"}
-    end
+    result =
+      case Commands.send_tcp_msg(pid, dest, port, msg) do
+        {:ok, "CLOSE OK"} -> {:ok, "SENT"}
+        {:ok, "ERROR"} -> {:error, "ERROR"}
+      end
+
     {:reply, result, state, 30_000}
   end
 

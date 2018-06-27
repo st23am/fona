@@ -3,7 +3,8 @@ defmodule Fona.GpsResponse do
     run_status: "0",
     fix_status: "0",
     datetime: "",
-    latitude: "0.0", longitude: "0.0",
+    latitude: "0.0",
+    longitude: "0.0",
     altitude: "0.0",
     speed: "0.0",
     course: "0.0",
@@ -17,7 +18,8 @@ defmodule Fona.GpsResponse do
     gnss_sats_used: "0",
     glonass_sats_used: "",
     reserved3: "",
-    c_n0_max: "0", hpa: "",
+    c_n0_max: "0",
+    hpa: "",
     vpa: ""
   ]
   @response_keys Keyword.keys(@response_fields)
@@ -26,10 +28,11 @@ defmodule Fona.GpsResponse do
   @gps_info_response "+CGNSINF: "
 
   def from_raw_response(@gps_info_response <> <<gps_data::binary>>) do
-    data = gps_data
-    |> String.split(",")
+    data =
+      gps_data
+      |> String.split(",")
+
     kv = Enum.zip(@response_keys, data)
     struct!(%Fona.GpsResponse{}, kv)
   end
 end
-
